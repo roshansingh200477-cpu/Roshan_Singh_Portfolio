@@ -42,7 +42,6 @@ const stats = [
   { value: 1, suffix: '', label: 'Live in Production' },
 ]
 
-// ── Animated counter ─────────────────────────────────────────
 function Counter({ value, suffix, isInView }) {
   const [count, setCount] = useState(0)
   useEffect(() => {
@@ -59,7 +58,6 @@ function Counter({ value, suffix, isInView }) {
   return <>{count}{suffix}</>
 }
 
-// ── 3D background ────────────────────────────────────────────
 function ProjectsBg({ canvasRef, mouseRef }) {
   useEffect(() => {
     const canvas = canvasRef.current
@@ -78,7 +76,6 @@ function ProjectsBg({ canvasRef, mouseRef }) {
     pl.position.set(0, 0, 10)
     scene.add(pl)
 
-    // Floating orbs
     const orbs = Array.from({ length: 6 }, (_, i) => {
       const r = 0.4 + Math.random() * 0.6
       const geo = new THREE.SphereGeometry(r, 16, 16)
@@ -103,7 +100,6 @@ function ProjectsBg({ canvasRef, mouseRef }) {
       return mesh
     })
 
-    // Particles
     const count = 200
     const pos = new Float32Array(count * 3)
     for (let i = 0; i < count; i++) {
@@ -120,7 +116,6 @@ function ProjectsBg({ canvasRef, mouseRef }) {
     const particles = new THREE.Points(pGeo, pMat)
     scene.add(particles)
 
-    // Large background ring
     const ringGeo = new THREE.TorusGeometry(14, 0.015, 8, 200)
     const ringMat = new THREE.MeshStandardMaterial({
       color: 0x34d399, transparent: true, opacity: 0.05,
@@ -134,15 +129,12 @@ function ProjectsBg({ canvasRef, mouseRef }) {
     const animate = () => {
       fId = requestAnimationFrame(animate)
       const t = clock.getElapsedTime()
-
       particles.rotation.y = t * 0.015
       ring.rotation.z = t * 0.03
-
       if (mouseRef.current) {
         particles.rotation.y += mouseRef.current.x * 0.00015
         particles.rotation.x += mouseRef.current.y * 0.0001
       }
-
       orbs.forEach(orb => {
         orb.rotation.y += orb.userData.r
         orb.position.x += orb.userData.vx
@@ -150,7 +142,6 @@ function ProjectsBg({ canvasRef, mouseRef }) {
         if (Math.abs(orb.position.x) > 28) orb.userData.vx *= -1
         if (Math.abs(orb.position.y) > 18) orb.userData.vy *= -1
       })
-
       renderer.render(scene, camera)
     }
     animate()
@@ -171,12 +162,33 @@ function ProjectsBg({ canvasRef, mouseRef }) {
   return null
 }
 
-// ── Main Section ─────────────────────────────────────────────
+// ── Responsive hook ───────────────────────────────────────────
+function useBreakpoint() {
+  const [bp, setBp] = useState({
+    isMobile: false,
+    isTablet: false,
+  })
+  useEffect(() => {
+    const update = () => {
+      const w = window.innerWidth
+      setBp({
+        isMobile: w < 640,
+        isTablet: w >= 640 && w < 1024,
+      })
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
+  return bp
+}
+
 export default function ProjectsSection() {
-  const canvasRef = useRef(null)
-  const mouseRef = useRef({ x: 0, y: 0 })
+  const canvasRef  = useRef(null)
+  const mouseRef   = useRef({ x: 0, y: 0 })
   const sectionRef = useRef(null)
-  const isInView = useInView(sectionRef, { once: true, margin: '-80px' })
+  const isInView   = useInView(sectionRef, { once: true, margin: '-80px' })
+  const { isMobile, isTablet } = useBreakpoint()
 
   useEffect(() => {
     const onMove = (e) => {
@@ -189,6 +201,24 @@ export default function ProjectsSection() {
     return () => window.removeEventListener('mousemove', onMove)
   }, [])
 
+  // Responsive values
+  const sectionPadding   = isMobile ? '80px 0 100px' : '100px 0 120px'
+  const contentPadding   = isMobile ? '0 20px' : isTablet ? '0 32px' : '0 60px'
+  const headingSize      = isMobile ? 'clamp(32px, 8vw, 48px)' : 'clamp(36px, 5vw, 64px)'
+  const statsGap         = isMobile ? '24px' : '40px'
+  const statsMarginB     = isMobile ? '40px' : '56px'
+  const statsPaddingB    = isMobile ? '28px' : '40px'
+  const statsFontSize    = isMobile ? 'clamp(24px, 7vw, 36px)' : 'clamp(28px, 3.5vw, 44px)'
+  const cardsGap         = isMobile ? '16px' : '20px'
+  const ctaMarginTop     = isMobile ? '40px' : '56px'
+
+  // Cards grid: 1 col mobile, 2 col tablet, auto-fit desktop
+  const cardsGridCols    = isMobile
+    ? '1fr'
+    : isTablet
+    ? 'repeat(2, 1fr)'
+    : 'repeat(auto-fit, minmax(300px, 1fr))'
+
   return (
     <section
       id="projects"
@@ -198,7 +228,7 @@ export default function ProjectsSection() {
         minHeight: '100vh',
         backgroundColor: '#0a0a0a',
         overflow: 'hidden',
-        padding: '100px 0 120px',
+        padding: sectionPadding,
       }}
     >
       {/* Top divider */}
@@ -232,7 +262,8 @@ export default function ProjectsSection() {
 
       <div style={{
         position: 'relative', zIndex: 2,
-        maxWidth: '1100px', margin: '0 auto', padding: '0 60px',
+        maxWidth: '1100px', margin: '0 auto',
+        padding: contentPadding,
       }}>
 
         {/* ── Header ── */}
@@ -263,7 +294,7 @@ export default function ProjectsSection() {
               transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
               style={{
                 fontFamily: 'Syne, sans-serif', fontWeight: '800',
-                fontSize: 'clamp(36px, 5vw, 64px)',
+                fontSize: headingSize,
                 color: 'white', letterSpacing: '-0.03em',
                 lineHeight: 1.05, marginBottom: '0',
               }}
@@ -279,7 +310,7 @@ export default function ProjectsSection() {
               transition={{ duration: 0.7, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
               style={{
                 fontFamily: 'Syne, sans-serif', fontWeight: '800',
-                fontSize: 'clamp(36px, 5vw, 64px)',
+                fontSize: headingSize,
                 WebkitTextStroke: '1.5px rgba(255,255,255,0.2)',
                 color: 'transparent',
                 letterSpacing: '-0.03em', lineHeight: 1.05,
@@ -295,9 +326,10 @@ export default function ProjectsSection() {
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.3 }}
             style={{
-              fontSize: '15px', color: 'rgba(255,255,255,0.38)',
+              fontSize: isMobile ? '14px' : '15px',
+              color: 'rgba(255,255,255,0.38)',
               fontFamily: 'Inter, sans-serif', lineHeight: '1.8',
-              maxWidth: '440px',
+              maxWidth: isMobile ? '100%' : '440px',
             }}
           >
             From ML-powered tools to full-stack web apps — real projects
@@ -311,23 +343,25 @@ export default function ProjectsSection() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.35 }}
           style={{
-            display: 'flex', gap: '40px',
-            marginBottom: '56px',
-            paddingBottom: '40px',
+            display: 'flex', gap: statsGap,
+            marginBottom: statsMarginB,
+            paddingBottom: statsPaddingB,
             borderBottom: '1px solid rgba(255,255,255,0.06)',
+            flexWrap: isMobile ? 'wrap' : 'nowrap',
           }}
         >
           {stats.map((stat, i) => (
-            <div key={i}>
+            <div key={i} style={{ minWidth: isMobile ? 'calc(33% - 16px)' : 'auto' }}>
               <div style={{
                 fontFamily: 'Syne, sans-serif', fontWeight: '800',
-                fontSize: 'clamp(28px, 3.5vw, 44px)',
+                fontSize: statsFontSize,
                 color: '#34d399', lineHeight: 1, marginBottom: '4px',
               }}>
                 <Counter value={stat.value} suffix={stat.suffix} isInView={isInView} />
               </div>
               <div style={{
-                fontSize: '10px', color: 'rgba(255,255,255,0.3)',
+                fontSize: isMobile ? '9px' : '10px',
+                color: 'rgba(255,255,255,0.3)',
                 fontFamily: 'Inter, sans-serif',
                 letterSpacing: '0.1em', textTransform: 'uppercase',
               }}>
@@ -340,8 +374,8 @@ export default function ProjectsSection() {
         {/* ── Cards grid ── */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '20px',
+          gridTemplateColumns: cardsGridCols,
+          gap: cardsGap,
         }}>
           {projects.map((project, i) => (
             <ProjectCard key={project.title} {...project} index={i} />
@@ -354,7 +388,7 @@ export default function ProjectsSection() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.8 }}
           style={{
-            marginTop: '56px', textAlign: 'center',
+            marginTop: ctaMarginTop, textAlign: 'center',
           }}
         >
           <p style={{
@@ -373,11 +407,13 @@ export default function ProjectsSection() {
             transition={{ duration: 0.2 }}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '8px',
-              padding: '12px 28px', borderRadius: '999px',
+              padding: isMobile ? '11px 22px' : '12px 28px',
+              borderRadius: '999px',
               border: '1px solid rgba(255,255,255,0.1)',
               color: 'rgba(255,255,255,0.45)',
               fontFamily: 'Syne, sans-serif', fontWeight: '600',
-              fontSize: '13px', textDecoration: 'none',
+              fontSize: isMobile ? '12px' : '13px',
+              textDecoration: 'none',
               backgroundColor: 'transparent',
               letterSpacing: '0.04em',
               transition: 'all 0.2s ease',
