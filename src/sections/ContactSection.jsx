@@ -37,7 +37,16 @@ const socials = [
   },
 ]
 
-// ── 3D DNA / helix background ────────────────────────────────
+function useWindowWidth() {
+  const [width, setWidth] = useState(window.innerWidth)
+  useEffect(() => {
+    const handleResize = () => setWidth(window.innerWidth)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+  return width
+}
+
 function ContactBg({ canvasRef, mouseRef }) {
   useEffect(() => {
     const canvas = canvasRef.current
@@ -59,22 +68,18 @@ function ContactBg({ canvasRef, mouseRef }) {
     pl2.position.set(-8, -8, -4)
     scene.add(pl2)
 
-    // Helix strand
     const helixGroup = new THREE.Group()
     const strandCount = 60
-    const strand1Dots = [], strand2Dots = [], connectors = []
 
     for (let i = 0; i < strandCount; i++) {
       const t = (i / strandCount) * Math.PI * 6
       const r = 3.5
-
       const x1 = Math.cos(t) * r
       const x2 = Math.cos(t + Math.PI) * r
       const y = (i / strandCount) * 28 - 14
       const z1 = Math.sin(t) * r
       const z2 = Math.sin(t + Math.PI) * r
 
-      // Strand 1 dot
       const d1 = new THREE.Mesh(
         new THREE.SphereGeometry(0.08, 8, 8),
         new THREE.MeshStandardMaterial({
@@ -84,9 +89,7 @@ function ContactBg({ canvasRef, mouseRef }) {
       )
       d1.position.set(x1, y, z1)
       helixGroup.add(d1)
-      strand1Dots.push(d1)
 
-      // Strand 2 dot
       const d2 = new THREE.Mesh(
         new THREE.SphereGeometry(0.08, 8, 8),
         new THREE.MeshStandardMaterial({
@@ -96,15 +99,10 @@ function ContactBg({ canvasRef, mouseRef }) {
       )
       d2.position.set(x2, y, z2)
       helixGroup.add(d2)
-      strand2Dots.push(d2)
 
-      // Connector every 5 steps
       if (i % 5 === 0) {
-        const mid = new THREE.Vector3(
-          (x1 + x2) / 2, y, (z1 + z2) / 2
-        )
-        const len = new THREE.Vector3(x1, y, z1)
-          .distanceTo(new THREE.Vector3(x2, y, z2))
+        const mid = new THREE.Vector3((x1 + x2) / 2, y, (z1 + z2) / 2)
+        const len = new THREE.Vector3(x1, y, z1).distanceTo(new THREE.Vector3(x2, y, z2))
         const connGeo = new THREE.CylinderGeometry(0.015, 0.015, len, 6)
         const connMat = new THREE.MeshStandardMaterial({
           color: 0x34d399, transparent: true, opacity: 0.2,
@@ -114,14 +112,12 @@ function ContactBg({ canvasRef, mouseRef }) {
         conn.lookAt(new THREE.Vector3(x1, y, z1))
         conn.rotateX(Math.PI / 2)
         helixGroup.add(conn)
-        connectors.push(conn)
       }
     }
 
     helixGroup.position.x = 10
     scene.add(helixGroup)
 
-    // Particles
     const pCount = 180
     const pPos = new Float32Array(pCount * 3)
     for (let i = 0; i < pCount; i++) {
@@ -132,13 +128,11 @@ function ContactBg({ canvasRef, mouseRef }) {
     const pGeo = new THREE.BufferGeometry()
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3))
     const pMat = new THREE.PointsMaterial({
-      color: 0x34d399, size: 0.14,
-      transparent: true, opacity: 0.22,
+      color: 0x34d399, size: 0.14, transparent: true, opacity: 0.22,
     })
     const particles = new THREE.Points(pGeo, pMat)
     scene.add(particles)
 
-    // Torus on the left
     const torusGeo = new THREE.TorusGeometry(3, 0.015, 8, 120)
     const torusMat = new THREE.MeshStandardMaterial({
       color: 0x34d399, transparent: true, opacity: 0.07,
@@ -153,17 +147,14 @@ function ContactBg({ canvasRef, mouseRef }) {
     const animate = () => {
       fId = requestAnimationFrame(animate)
       const t = clock.getElapsedTime()
-
       helixGroup.rotation.y = t * 0.25
       particles.rotation.y = t * 0.012
       torus.rotation.z = t * 0.04
       torus.rotation.y = t * 0.02
-
       if (mouseRef.current) {
         helixGroup.rotation.x += (mouseRef.current.y * 0.0003 - helixGroup.rotation.x * 0.01)
         particles.rotation.x += mouseRef.current.y * 0.00008
       }
-
       renderer.render(scene, camera)
     }
     animate()
@@ -184,7 +175,6 @@ function ContactBg({ canvasRef, mouseRef }) {
   return null
 }
 
-// ── Input field component ─────────────────────────────────────
 function Field({ label, name, type = 'text', multiline = false, value, onChange }) {
   const [focused, setFocused] = useState(false)
   const filled = value.length > 0
@@ -258,15 +248,16 @@ function Field({ label, name, type = 'text', multiline = false, value, onChange 
   )
 }
 
-// ── Main Section ──────────────────────────────────────────────
 export default function ContactSection() {
   const canvasRef = useRef(null)
   const mouseRef = useRef({ x: 0, y: 0 })
   const sectionRef = useRef(null)
   const isInView = useInView(sectionRef, { once: true, margin: '-80px' })
+  const windowWidth = useWindowWidth()
+  const isMobile = windowWidth < 768
 
   const [form, setForm] = useState({ from_name: '', reply_to: '', message: '' })
-  const [status, setStatus] = useState('idle') // idle | sending | success | error
+  const [status, setStatus] = useState('idle')
 
   useEffect(() => {
     const onMove = (e) => {
@@ -287,16 +278,11 @@ export default function ContactSection() {
     e.preventDefault()
     if (!form.from_name || !form.reply_to || !form.message) return
     setStatus('sending')
-
     try {
       await emailjs.send(
         import.meta.env.VITE_EMAILJS_SERVICE_ID,
         import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        {
-          from_name: form.from_name,
-          reply_to: form.reply_to,
-          message: form.message,
-        },
+        { from_name: form.from_name, reply_to: form.reply_to, message: form.message },
         import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
       )
       setStatus('success')
@@ -331,7 +317,7 @@ export default function ContactSection() {
         minHeight: '100vh',
         backgroundColor: '#080808',
         overflow: 'hidden',
-        padding: '100px 0 80px',
+        padding: isMobile ? '60px 0 40px' : '100px 0 80px',
       }}
     >
       {/* Top divider */}
@@ -353,18 +339,24 @@ export default function ContactSection() {
         background: 'radial-gradient(ellipse at 60% 50%, rgba(8,8,8,0.65) 20%, rgba(8,8,8,0.96) 80%)',
       }} />
 
+      {/* ── Main content ── */}
       <div style={{
         position: 'relative', zIndex: 2,
-        maxWidth: '1100px', margin: '0 auto', padding: '0 60px',
-        display: 'flex', gap: '80px', alignItems: 'flex-start',
+        maxWidth: '1100px', margin: '0 auto',
+        padding: isMobile ? '0 20px' : '0 60px',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? '40px' : '80px',
+        alignItems: 'flex-start',
       }}>
 
         {/* ── LEFT: Info ── */}
         <motion.div
-          initial={{ opacity: 0, x: -40 }}
-          animate={isInView ? { opacity: 1, x: 0 } : {}}
+          initial={{ opacity: 0, x: isMobile ? 0 : -40, y: isMobile ? 30 : 0 }}
+          animate={isInView ? { opacity: 1, x: 0, y: 0 } : {}}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          style={{ flex: '0 0 360px' }}
+          style={{ flex: isMobile ? 'none' : '0 0 360px', width: isMobile ? '100%' : 'auto' }}
         >
           {/* Label */}
           <div style={{
@@ -389,7 +381,7 @@ export default function ContactSection() {
               transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
               style={{
                 fontFamily: 'Syne, sans-serif', fontWeight: '800',
-                fontSize: 'clamp(32px, 4vw, 52px)',
+                fontSize: 'clamp(28px, 4vw, 52px)',
                 color: 'white', letterSpacing: '-0.03em', lineHeight: 1.1,
               }}
             >
@@ -403,7 +395,7 @@ export default function ContactSection() {
               transition={{ duration: 0.7, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
               style={{
                 fontFamily: 'Syne, sans-serif', fontWeight: '800',
-                fontSize: 'clamp(32px, 4vw, 52px)',
+                fontSize: 'clamp(28px, 4vw, 52px)',
                 WebkitTextStroke: '1.5px rgba(255,255,255,0.2)',
                 color: 'transparent',
                 letterSpacing: '-0.03em', lineHeight: 1.1,
@@ -420,7 +412,8 @@ export default function ContactSection() {
             style={{
               fontSize: '14px', color: 'rgba(255,255,255,0.38)',
               fontFamily: 'Inter, sans-serif', lineHeight: '1.9',
-              marginBottom: '40px', maxWidth: '300px',
+              marginBottom: '40px',
+              maxWidth: isMobile ? '100%' : '300px',
             }}
           >
             I'm currently open to internships, entry-level roles, and freelance
@@ -479,8 +472,7 @@ export default function ContactSection() {
                   </div>
                 </div>
                 <div style={{
-                  marginLeft: 'auto', color: 'rgba(52,211,153,0.4)',
-                  fontSize: '16px',
+                  marginLeft: 'auto', color: 'rgba(52,211,153,0.4)', fontSize: '16px',
                 }}>
                   ↗
                 </div>
@@ -491,13 +483,13 @@ export default function ContactSection() {
 
         {/* ── RIGHT: Form ── */}
         <motion.div
-          initial={{ opacity: 0, x: 40 }}
-          animate={isInView ? { opacity: 1, x: 0 } : {}}
+          initial={{ opacity: 0, x: isMobile ? 0 : 40, y: isMobile ? 30 : 0 }}
+          animate={isInView ? { opacity: 1, x: 0, y: 0 } : {}}
           transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          style={{ flex: 1 }}
+          style={{ flex: 1, width: isMobile ? '100%' : 'auto' }}
         >
           <div style={{
-            padding: '40px',
+            padding: isMobile ? '24px 20px' : '40px',
             borderRadius: '24px',
             background: 'rgba(255,255,255,0.025)',
             border: '1px solid rgba(255,255,255,0.07)',
@@ -532,7 +524,11 @@ export default function ContactSection() {
             </p>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                gap: '16px',
+              }}>
                 <Field
                   label="Your Name"
                   name="from_name"
@@ -583,19 +579,18 @@ export default function ContactSection() {
                   position: 'relative', overflow: 'hidden',
                 }}
               >
-                {/* Shimmer on idle */}
                 {status === 'idle' && (
                   <motion.div
                     animate={{ x: ['-100%', '200%'] }}
                     transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', repeatDelay: 1 }}
                     style={{
                       position: 'absolute', top: 0, bottom: 0,
-                      width: '30%', background: 'linear-gradient(90deg, transparent, rgba(52,211,153,0.12), transparent)',
+                      width: '30%',
+                      background: 'linear-gradient(90deg, transparent, rgba(52,211,153,0.12), transparent)',
                       pointerEvents: 'none',
                     }}
                   />
                 )}
-
                 <AnimatePresence mode="wait">
                   <motion.span
                     key={status}
@@ -622,10 +617,15 @@ export default function ContactSection() {
         style={{
           position: 'relative', zIndex: 2,
           maxWidth: '1100px', margin: '60px auto 0',
-          padding: '24px 60px 0',
+          padding: isMobile ? '24px 20px 0' : '24px 60px 0',
           borderTop: '1px solid rgba(255,255,255,0.06)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          justifyContent: isMobile ? 'center' : 'space-between',
+          alignItems: 'center',
+          textAlign: isMobile ? 'center' : 'left',
           flexWrap: 'wrap', gap: '12px',
+          boxSizing: 'border-box',
         }}
       >
         <span style={{
@@ -653,19 +653,6 @@ export default function ContactSection() {
           Back to top ↑
         </motion.a>
       </motion.div>
-
-      <style>{`
-        @media (max-width: 900px) {
-          #contact > div:nth-child(5) {
-            flex-direction: column !important;
-            gap: 48px !important;
-          }
-          #contact > div:nth-child(5) > div:first-child {
-            flex: none !important;
-            width: 100% !important;
-          }
-        }
-      `}</style>
     </section>
   )
 }

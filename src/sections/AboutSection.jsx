@@ -14,6 +14,16 @@ const traits = [
   'Node.js', 'MongoDB', 'Teamwork', 'FastAPI', 'Open Source',
 ]
 
+function useWindowWidth() {
+  const [width, setWidth] = useState(window.innerWidth)
+  useEffect(() => {
+    const handleResize = () => setWidth(window.innerWidth)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+  return width
+}
+
 function GlobeCanvas({ canvasRef, mouseRef }) {
   useEffect(() => {
     const canvas = canvasRef.current
@@ -29,7 +39,6 @@ function GlobeCanvas({ canvasRef, mouseRef }) {
     const camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 100)
     camera.position.z = 4.5
 
-    // Lights
     scene.add(new THREE.AmbientLight(0xffffff, 0.15))
     const pl1 = new THREE.PointLight(0x34d399, 3, 20)
     pl1.position.set(3, 3, 3)
@@ -41,38 +50,28 @@ function GlobeCanvas({ canvasRef, mouseRef }) {
     pl3.position.set(0, 5, 2)
     scene.add(pl3)
 
-    // Main globe — wireframe sphere
     const globeGeo = new THREE.SphereGeometry(1.4, 32, 32)
     const globeMat = new THREE.MeshStandardMaterial({
-      color: 0x34d399,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.12,
+      color: 0x34d399, wireframe: true, transparent: true, opacity: 0.12,
     })
     const globe = new THREE.Mesh(globeGeo, globeMat)
     scene.add(globe)
 
-    // Inner solid sphere with glow
     const innerGeo = new THREE.SphereGeometry(1.35, 64, 64)
     const innerMat = new THREE.MeshStandardMaterial({
-      color: 0x0a1a14,
-      transparent: true,
-      opacity: 0.85,
-      roughness: 0.1,
-      metalness: 0.8,
+      color: 0x0a1a14, transparent: true, opacity: 0.85,
+      roughness: 0.1, metalness: 0.8,
     })
     const inner = new THREE.Mesh(innerGeo, innerMat)
     scene.add(inner)
 
-    // Latitude rings
     const rings = []
     ;[0, 30, -30, 60, -60].forEach((lat, i) => {
       const rad = Math.cos((lat * Math.PI) / 180) * 1.42
       const y = Math.sin((lat * Math.PI) / 180) * 1.42
       const ringGeo = new THREE.TorusGeometry(rad, 0.008, 8, 120)
       const ringMat = new THREE.MeshStandardMaterial({
-        color: 0x34d399,
-        transparent: true,
+        color: 0x34d399, transparent: true,
         opacity: i === 0 ? 0.35 : 0.15,
       })
       const ring = new THREE.Mesh(ringGeo, ringMat)
@@ -82,31 +81,24 @@ function GlobeCanvas({ canvasRef, mouseRef }) {
       rings.push(ring)
     })
 
-    // Longitude rings
     ;[0, 60, 120].forEach(lon => {
       const ringGeo = new THREE.TorusGeometry(1.42, 0.006, 8, 120)
       const ringMat = new THREE.MeshStandardMaterial({
-        color: 0x6ee7b7,
-        transparent: true,
-        opacity: 0.1,
+        color: 0x6ee7b7, transparent: true, opacity: 0.1,
       })
       const ring = new THREE.Mesh(ringGeo, ringMat)
       ring.rotation.y = (lon * Math.PI) / 180
       scene.add(ring)
     })
 
-    // Floating dots on surface (like cities)
     const dotGroup = new THREE.Group()
     for (let i = 0; i < 40; i++) {
       const phi = Math.acos(-1 + (2 * i) / 40)
       const theta = Math.sqrt(40 * Math.PI) * phi
       const dotGeo = new THREE.SphereGeometry(0.018, 8, 8)
       const dotMat = new THREE.MeshStandardMaterial({
-        color: 0x34d399,
-        transparent: true,
-        opacity: 0.7,
-        emissive: 0x34d399,
-        emissiveIntensity: 0.5,
+        color: 0x34d399, transparent: true, opacity: 0.7,
+        emissive: 0x34d399, emissiveIntensity: 0.5,
       })
       const dot = new THREE.Mesh(dotGeo, dotMat)
       dot.position.setFromSphericalCoords(1.42,
@@ -117,7 +109,6 @@ function GlobeCanvas({ canvasRef, mouseRef }) {
     }
     scene.add(dotGroup)
 
-    // Outer glow ring
     const glowGeo = new THREE.TorusGeometry(1.65, 0.04, 8, 120)
     const glowMat = new THREE.MeshStandardMaterial({
       color: 0x34d399, transparent: true, opacity: 0.06,
@@ -126,7 +117,6 @@ function GlobeCanvas({ canvasRef, mouseRef }) {
     glowRing.rotation.x = Math.PI / 2.5
     scene.add(glowRing)
 
-    // Orbiting satellite dot
     const satGeo = new THREE.SphereGeometry(0.04, 8, 8)
     const satMat = new THREE.MeshStandardMaterial({
       color: 0xffffff, emissive: 0x34d399,
@@ -143,30 +133,20 @@ function GlobeCanvas({ canvasRef, mouseRef }) {
 
     let fId
     const clock = new THREE.Clock()
-
     const animate = () => {
       fId = requestAnimationFrame(animate)
       const t = clock.getElapsedTime()
-
-      // Auto rotate
       groupRef.rotation.y = t * 0.18
-
-      // Mouse parallax
       if (mouseRef.current) {
         const { x, y } = mouseRef.current
         groupRef.rotation.x += (y * 0.3 - groupRef.rotation.x) * 0.05
         glowRing.rotation.y += (x * 0.2 - glowRing.rotation.y) * 0.03
       }
-
-      // Orbiting satellite
       satellite.position.x = Math.cos(t * 0.6) * 1.9
       satellite.position.y = Math.sin(t * 0.4) * 0.8
       satellite.position.z = Math.sin(t * 0.6) * 1.9
-
-      // Pulse glow ring
       glowRing.material.opacity = 0.04 + Math.sin(t * 1.2) * 0.03
       glowRing.rotation.z = t * 0.05
-
       renderer.render(scene, camera)
     }
     animate()
@@ -193,6 +173,8 @@ export default function AboutSection() {
   const mouseRef = useRef({ x: 0, y: 0 })
   const sectionRef = useRef(null)
   const isInView = useInView(sectionRef, { once: true, margin: '-100px' })
+  const windowWidth = useWindowWidth()
+  const isMobile = windowWidth < 768
 
   useEffect(() => {
     const onMove = (e) => {
@@ -248,19 +230,23 @@ export default function AboutSection() {
 
       <div style={{
         maxWidth: '1200px', margin: '0 auto',
-        padding: '0 60px', width: '100%',
-        display: 'flex', alignItems: 'center',
-        gap: '60px',
+        padding: isMobile ? '0 20px' : '0 60px',
+        width: '100%', boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: 'center',
+        gap: isMobile ? '40px' : '60px',
       }}>
 
-        {/* ── LEFT: 3D Globe ── */}
+        {/* ── Globe ── */}
         <motion.div
           initial={{ opacity: 0, scale: 0.85 }}
           animate={isInView ? { opacity: 1, scale: 1 } : {}}
           transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
           style={{
             flexShrink: 0, position: 'relative',
-            width: '420px', height: '420px',
+            width: isMobile ? '280px' : '420px',
+            height: isMobile ? '280px' : '420px',
           }}
         >
           {/* Glow behind globe */}
@@ -277,7 +263,7 @@ export default function AboutSection() {
           />
           <GlobeCanvas canvasRef={canvasRef} mouseRef={mouseRef} />
 
-          {/* Floating label chips around globe */}
+          {/* Floating label chips */}
           {[
             { label: 'React', top: '8%', left: '60%' },
             { label: 'Node.js', top: '30%', left: '-8%' },
@@ -296,7 +282,8 @@ export default function AboutSection() {
                 borderRadius: '999px',
                 background: 'rgba(10,26,20,0.9)',
                 border: '1px solid rgba(52,211,153,0.25)',
-                fontSize: '11px', fontFamily: 'Syne, sans-serif',
+                fontSize: isMobile ? '10px' : '11px',
+                fontFamily: 'Syne, sans-serif',
                 color: '#34d399', fontWeight: '600',
                 letterSpacing: '0.05em',
                 backdropFilter: 'blur(8px)',
@@ -314,14 +301,18 @@ export default function AboutSection() {
           variants={containerVariants}
           initial="hidden"
           animate={isInView ? 'visible' : 'hidden'}
-          style={{ flex: 1, minWidth: 0 }}
+          style={{
+            flex: 1, minWidth: 0,
+            textAlign: isMobile ? 'center' : 'left',
+          }}
         >
           {/* Section label */}
           <motion.div
             variants={itemVariants}
             style={{
-              display: 'flex', alignItems: 'center', gap: '12px',
-              marginBottom: '20px',
+              display: 'flex', alignItems: 'center',
+              justifyContent: isMobile ? 'center' : 'flex-start',
+              gap: '12px', marginBottom: '20px',
             }}
           >
             <div style={{ width: '24px', height: '1px', background: '#34d399' }} />
@@ -339,7 +330,7 @@ export default function AboutSection() {
             variants={itemVariants}
             style={{
               fontFamily: 'Syne, sans-serif', fontWeight: '800',
-              fontSize: 'clamp(32px, 4vw, 52px)',
+              fontSize: 'clamp(28px, 4vw, 52px)',
               color: 'white', letterSpacing: '-0.03em',
               lineHeight: 1.1, marginBottom: '20px',
             }}
@@ -357,7 +348,8 @@ export default function AboutSection() {
               fontFamily: 'Inter, sans-serif',
               lineHeight: '1.9',
               marginBottom: '32px',
-              maxWidth: '460px',
+              maxWidth: isMobile ? '100%' : '460px',
+              margin: isMobile ? '0 auto 32px' : '0 0 32px 0',
             }}
           >
             I'm a final-year BCA student at IGNOU Delhi with a passion for
@@ -371,7 +363,7 @@ export default function AboutSection() {
             variants={itemVariants}
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr',
               gap: '12px', marginBottom: '32px',
             }}
           >
@@ -386,6 +378,7 @@ export default function AboutSection() {
                   background: 'rgba(255,255,255,0.03)',
                   border: '1px solid rgba(255,255,255,0.07)',
                   cursor: 'default',
+                  textAlign: 'left',
                 }}
               >
                 <div style={{ fontSize: '16px', marginBottom: '6px' }}>{fact.icon}</div>
@@ -398,7 +391,8 @@ export default function AboutSection() {
                   {fact.label}
                 </div>
                 <div style={{
-                  fontSize: '13px', color: 'rgba(255,255,255,0.75)',
+                  fontSize: isMobile ? '12px' : '13px',
+                  color: 'rgba(255,255,255,0.75)',
                   fontFamily: 'Syne, sans-serif', fontWeight: '500',
                 }}>
                   {fact.value}
@@ -410,7 +404,10 @@ export default function AboutSection() {
           {/* Trait tags */}
           <motion.div
             variants={itemVariants}
-            style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}
+            style={{
+              display: 'flex', flexWrap: 'wrap', gap: '8px',
+              justifyContent: isMobile ? 'center' : 'flex-start',
+            }}
           >
             {traits.map((trait, i) => (
               <motion.span
@@ -443,22 +440,11 @@ export default function AboutSection() {
         </motion.div>
       </div>
 
-      {/* Floating animation keyframes */}
       <style>{`
         @keyframes float0 { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-8px)} }
         @keyframes float1 { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-6px)} }
         @keyframes float2 { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-10px)} }
         @keyframes float3 { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-7px)} }
-        @media (max-width: 900px) {
-          #about > div > div {
-            flex-direction: column !important;
-            align-items: center !important;
-          }
-          #about > div > div > div:first-child {
-            width: 300px !important;
-            height: 300px !important;
-          }
-        }
       `}</style>
     </section>
   )

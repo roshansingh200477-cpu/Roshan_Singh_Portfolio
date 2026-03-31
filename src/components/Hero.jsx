@@ -2,12 +2,22 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import * as THREE from 'three'
 
-const roles = ['Frontend Developer', 'React Developer', 'UI/UX Thinker', 'Full Stack Builder']
+const roles = ['Frontend Developer', 'React Developer', 'UI/UX Thinker', 'Hands on Full Stack']
 const stats = [
-  { value: '3+', label: 'Years Learning' },
+  { value: '2+', label: 'Projects learning' },
   { value: '4+', label: 'Projects Built' },
   { value: '3+', label: 'Tech Stacks' },
 ]
+
+function useWindowWidth() {
+  const [width, setWidth] = useState(window.innerWidth)
+  useEffect(() => {
+    const handleResize = () => setWidth(window.innerWidth)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+  return width
+}
 
 function ThreeBackground({ canvasRef }) {
   useEffect(() => {
@@ -33,7 +43,6 @@ function ThreeBackground({ canvasRef }) {
     const wire = (geo, color, opacity) => new THREE.Mesh(geo,
       new THREE.MeshStandardMaterial({ color, wireframe: true, transparent: true, opacity }))
 
-    // Keep shapes to sides/corners so center text is clear
     const torus = wire(new THREE.TorusGeometry(1.0, 0.28, 32, 100), 0x34d399, 0.16)
     torus.position.set(5, 1, -1)
     scene.add(torus)
@@ -50,7 +59,6 @@ function ThreeBackground({ canvasRef }) {
     octa.position.set(-4, 3, -2)
     scene.add(octa)
 
-    // Subtle large ring in background
     const ring = wire(new THREE.TorusGeometry(3.5, 0.015, 8, 120), 0x34d399, 0.04)
     ring.rotation.x = Math.PI / 2.8
     scene.add(ring)
@@ -85,9 +93,11 @@ function ThreeBackground({ canvasRef }) {
   return null
 }
 
-export default function Hero() {
+export default function HeroSection() {
   const canvasRef = useRef(null)
   const [roleIndex, setRoleIndex] = useState(0)
+  const windowWidth = useWindowWidth()
+  const isMobile = windowWidth < 768
 
   useEffect(() => {
     const id = setInterval(() => setRoleIndex(p => (p + 1) % roles.length), 2600)
@@ -104,7 +114,7 @@ export default function Hero() {
         overflow: 'hidden',
         display: 'flex',
         alignItems: 'center',
-        paddingTop: '64px', // offset for fixed navbar
+        paddingTop: '64px',
       }}
     >
       {/* 3D canvas */}
@@ -118,7 +128,8 @@ export default function Hero() {
       <div style={{
         position: 'absolute', top: '50%', left: '50%',
         transform: 'translate(-50%, -50%)',
-        width: '800px', height: '500px',
+        width: isMobile ? '300px' : '800px',
+        height: isMobile ? '300px' : '500px',
         background: 'radial-gradient(ellipse, rgba(52,211,153,0.05) 0%, transparent 70%)',
         zIndex: 1, pointerEvents: 'none',
       }} />
@@ -136,15 +147,19 @@ export default function Hero() {
       {/* Main layout */}
       <div style={{
         position: 'relative', zIndex: 2,
-        display: 'flex', alignItems: 'center',
-        gap: '52px', padding: '40px 60px',
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'center' : 'center',
+        gap: isMobile ? '32px' : '52px',
+        padding: isMobile ? '32px 20px 40px' : '40px 60px',
         maxWidth: '1200px', margin: '0 auto', width: '100%',
+        boxSizing: 'border-box',
       }}>
 
         {/* ── LEFT: Photo card ── */}
         <motion.div
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, x: isMobile ? 0 : -50, y: isMobile ? -30 : 0 }}
+          animate={{ opacity: 1, x: 0, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
           style={{ flexShrink: 0, position: 'relative' }}
         >
@@ -163,27 +178,26 @@ export default function Hero() {
 
           {/* Photo */}
           <div style={{
-            width: '240px', height: '300px',
+            width: isMobile ? '160px' : '240px',
+            height: isMobile ? '200px' : '300px',
             borderRadius: '18px', overflow: 'hidden',
             border: '1px solid rgba(52,211,153,0.18)',
             background: 'rgba(52,211,153,0.06)',
             position: 'relative',
           }}>
             <img
-              src="/roshan.jpg"
-              alt="Roshan Kumar"
+              src="/gojo.png"
+              alt="Roshan Singh"
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               onError={e => { e.target.style.display = 'none' }}
             />
-            {/* Fallback */}
             <div style={{
               position: 'absolute', inset: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '64px', fontWeight: '800',
+              fontSize: isMobile ? '42px' : '64px', fontWeight: '800',
               fontFamily: 'Syne, sans-serif',
               color: 'rgba(52,211,153,0.25)', letterSpacing: '-0.04em',
             }}>RS</div>
-            {/* Gradient overlay */}
             <div style={{
               position: 'absolute', inset: 0,
               background: 'linear-gradient(160deg, rgba(52,211,153,0.1) 0%, rgba(0,0,0,0.35) 100%)',
@@ -225,9 +239,12 @@ export default function Hero() {
         </motion.div>
 
         {/* ── RIGHT: Text ── */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          flex: 1, minWidth: 0,
+          textAlign: isMobile ? 'center' : 'left',
+        }}>
 
-          {/* FRONTEND — solid white */}
+          {/* FRONTEND */}
           <div style={{ overflow: 'hidden', lineHeight: 1 }}>
             <motion.div
               initial={{ y: 90, opacity: 0 }}
@@ -236,8 +253,7 @@ export default function Hero() {
               style={{
                 fontFamily: 'Syne, sans-serif',
                 fontWeight: '800',
-                // clamp keeps it from overflowing
-                fontSize: 'clamp(36px, 5.3vw, 72px)',
+                fontSize: isMobile ? 'clamp(36px, 10vw, 56px)' : 'clamp(36px, 5.3vw, 72px)',
                 color: 'white',
                 letterSpacing: '-0.03em',
                 whiteSpace: 'nowrap',
@@ -247,7 +263,7 @@ export default function Hero() {
             </motion.div>
           </div>
 
-          {/* DEVELOPER — outlined ghost text */}
+          {/* DEVELOPER */}
           <div style={{ overflow: 'hidden', lineHeight: 1, marginBottom: '20px' }}>
             <motion.div
               initial={{ y: 90, opacity: 0 }}
@@ -256,7 +272,7 @@ export default function Hero() {
               style={{
                 fontFamily: 'Syne, sans-serif',
                 fontWeight: '800',
-                fontSize: 'clamp(36px, 4vw, 72px)',
+                fontSize: isMobile ? 'clamp(36px, 10vw, 56px)' : 'clamp(36px, 4vw, 72px)',
                 WebkitTextStroke: '1.5px rgba(255,255,255,0.18)',
                 color: 'transparent',
                 letterSpacing: '-0.03em',
@@ -270,7 +286,9 @@ export default function Hero() {
           {/* Cycling role subtitle */}
           <div style={{
             height: '32px', overflow: 'hidden',
-            display: 'flex', alignItems: 'center', gap: '12px',
+            display: 'flex', alignItems: 'center',
+            justifyContent: isMobile ? 'center' : 'flex-start',
+            gap: '12px',
             marginBottom: '18px',
           }}>
             <div style={{ width: '28px', height: '1px', background: '#34d399', flexShrink: 0 }} />
@@ -301,8 +319,10 @@ export default function Hero() {
               fontSize: 'clamp(14px, 1.4vw, 16px)',
               color: 'rgba(255,255,255,0.42)',
               fontFamily: 'Inter, sans-serif',
-              lineHeight: '1.85', maxWidth: '440px',
+              lineHeight: '1.85',
+              maxWidth: isMobile ? '100%' : '440px',
               marginBottom: '32px',
+              margin: isMobile ? '0 auto 32px' : '0 0 32px 0',
             }}
           >
             Passionate about creating fast, intuitive, and beautiful web experiences.
@@ -315,7 +335,9 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.15 }}
             style={{
-              display: 'flex', gap: '40px',
+              display: 'flex',
+              gap: isMobile ? '20px' : '40px',
+              justifyContent: isMobile ? 'center' : 'flex-start',
               paddingBottom: '28px',
               borderBottom: '1px solid rgba(255,255,255,0.07)',
               marginBottom: '28px',
@@ -329,7 +351,7 @@ export default function Hero() {
                 transition={{ delay: 1.2 + i * 0.1 }}
               >
                 <div style={{
-                  fontSize: 'clamp(28px, 4vw, 48px)',
+                  fontSize: isMobile ? 'clamp(24px, 7vw, 36px)' : 'clamp(28px, 4vw, 48px)',
                   fontWeight: '800', fontFamily: 'Syne, sans-serif',
                   color: 'white', lineHeight: 1, marginBottom: '5px',
                 }}>
@@ -351,7 +373,10 @@ export default function Hero() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.5 }}
-            style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}
+            style={{
+              display: 'flex', gap: '12px', flexWrap: 'wrap',
+              justifyContent: isMobile ? 'center' : 'flex-start',
+            }}
           >
             <motion.a
               href="#projects"
@@ -421,10 +446,6 @@ export default function Hero() {
 
       <style>{`
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-        @media (max-width: 768px) {
-          #hero > div:last-child { flex-direction: column !important; padding: 24px 20px !important; gap: 32px !important; }
-          #hero > div:last-child > div:first-child { align-self: center; }
-        }
       `}</style>
     </section>
   )

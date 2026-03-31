@@ -54,7 +54,16 @@ const allSkillNames = [
   'Docker', 'JWT', 'REST', 'HTML', 'CSS',
 ]
 
-// ── 3D Particle Field ──────────────────────────────────────────
+function useWindowWidth() {
+  const [width, setWidth] = useState(window.innerWidth)
+  useEffect(() => {
+    const handleResize = () => setWidth(window.innerWidth)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+  return width
+}
+
 function ParticleField({ canvasRef, mouseRef }) {
   useEffect(() => {
     const canvas = canvasRef.current
@@ -68,15 +77,12 @@ function ParticleField({ canvasRef, mouseRef }) {
     const camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 200)
     camera.position.z = 30
 
-    // Particles
     const count = 280
     const positions = new Float32Array(count * 3)
-    const sizes = new Float32Array(count)
     for (let i = 0; i < count; i++) {
       positions[i * 3]     = (Math.random() - 0.5) * 80
       positions[i * 3 + 1] = (Math.random() - 0.5) * 50
       positions[i * 3 + 2] = (Math.random() - 0.5) * 40
-      sizes[i] = Math.random() * 2 + 0.5
     }
     const geo = new THREE.BufferGeometry()
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
@@ -88,8 +94,7 @@ function ParticleField({ canvasRef, mouseRef }) {
     const particles = new THREE.Points(geo, mat)
     scene.add(particles)
 
-    // Floating wireframe cubes
-    const cubes = allSkillNames.slice(0, 8).map((name, i) => {
+    const cubes = allSkillNames.slice(0, 8).map(() => {
       const size = 0.8 + Math.random() * 0.6
       const geo = new THREE.BoxGeometry(size, size, size)
       const mat = new THREE.MeshStandardMaterial({
@@ -122,16 +127,12 @@ function ParticleField({ canvasRef, mouseRef }) {
     const animate = () => {
       fId = requestAnimationFrame(animate)
       const t = clock.getElapsedTime()
-
       particles.rotation.y = t * 0.02
       particles.rotation.x = t * 0.01
-
-      // Mouse parallax on particles
       if (mouseRef.current) {
         particles.rotation.y += mouseRef.current.x * 0.0003
         particles.rotation.x += mouseRef.current.y * 0.0002
       }
-
       cubes.forEach((cube) => {
         cube.rotation.x += cube.userData.rx
         cube.rotation.y += cube.userData.ry
@@ -140,7 +141,6 @@ function ParticleField({ canvasRef, mouseRef }) {
         if (Math.abs(cube.position.x) > 30) cube.userData.vx *= -1
         if (Math.abs(cube.position.y) > 18) cube.userData.vy *= -1
       })
-
       renderer.render(scene, camera)
     }
     animate()
@@ -161,7 +161,6 @@ function ParticleField({ canvasRef, mouseRef }) {
   return null
 }
 
-// ── Skill Bar ──────────────────────────────────────────────────
 function SkillBar({ skill, index, isInView }) {
   const [filled, setFilled] = useState(false)
 
@@ -213,13 +212,11 @@ function SkillBar({ skill, index, isInView }) {
         </motion.span>
       </div>
 
-      {/* Track */}
       <div style={{
         height: '4px', borderRadius: '999px',
         background: 'rgba(255,255,255,0.06)',
         overflow: 'hidden', position: 'relative',
       }}>
-        {/* Fill bar */}
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: filled ? `${skill.level}%` : 0 }}
@@ -230,7 +227,6 @@ function SkillBar({ skill, index, isInView }) {
             background: `linear-gradient(90deg, ${skill.color}88, ${skill.color})`,
           }}
         />
-        {/* Shimmer */}
         {filled && (
           <motion.div
             initial={{ x: '-100%' }}
@@ -245,7 +241,6 @@ function SkillBar({ skill, index, isInView }) {
         )}
       </div>
 
-      {/* Glow dot at end of bar */}
       {filled && (
         <motion.div
           initial={{ opacity: 0, scale: 0 }}
@@ -266,13 +261,14 @@ function SkillBar({ skill, index, isInView }) {
   )
 }
 
-// ── Main Section ───────────────────────────────────────────────
 export default function SkillsSection() {
   const canvasRef = useRef(null)
   const mouseRef = useRef({ x: 0, y: 0 })
   const sectionRef = useRef(null)
   const isInView = useInView(sectionRef, { once: true, margin: '-80px' })
   const [activeTab, setActiveTab] = useState(0)
+  const windowWidth = useWindowWidth()
+  const isMobile = windowWidth < 768
 
   useEffect(() => {
     const onMove = (e) => {
@@ -294,10 +290,10 @@ export default function SkillsSection() {
         minHeight: '100vh',
         backgroundColor: '#0c0c0c',
         overflow: 'hidden',
-        padding: '100px 0',
+        padding: isMobile ? '60px 0' : '100px 0',
       }}
     >
-      {/* Top divider line */}
+      {/* Top divider */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
         background: 'linear-gradient(90deg, transparent, rgba(52,211,153,0.3), transparent)',
@@ -310,7 +306,7 @@ export default function SkillsSection() {
       }} />
       <ParticleField canvasRef={canvasRef} mouseRef={mouseRef} />
 
-      {/* Dark overlay so text is readable */}
+      {/* Dark overlay */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 1,
         background: 'radial-gradient(ellipse at center, rgba(12,12,12,0.7) 40%, rgba(12,12,12,0.95) 100%)',
@@ -319,7 +315,9 @@ export default function SkillsSection() {
 
       <div style={{
         position: 'relative', zIndex: 2,
-        maxWidth: '1100px', margin: '0 auto', padding: '0 60px',
+        maxWidth: '1100px', margin: '0 auto',
+        padding: isMobile ? '0 20px' : '0 60px',
+        boxSizing: 'border-box',
       }}>
 
         {/* ── Section Header ── */}
@@ -327,7 +325,7 @@ export default function SkillsSection() {
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.7 }}
-          style={{ textAlign: 'center', marginBottom: '60px' }}
+          style={{ textAlign: 'center', marginBottom: isMobile ? '36px' : '60px' }}
         >
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: '12px',
@@ -346,7 +344,7 @@ export default function SkillsSection() {
 
           <h2 style={{
             fontFamily: 'Syne, sans-serif', fontWeight: '800',
-            fontSize: 'clamp(32px, 4.5vw, 56px)',
+            fontSize: 'clamp(28px, 4.5vw, 56px)',
             color: 'white', letterSpacing: '-0.03em',
             lineHeight: 1.1, marginBottom: '16px',
           }}>
@@ -368,49 +366,61 @@ export default function SkillsSection() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.2 }}
           style={{
-            display: 'flex', justifyContent: 'center',
-            gap: '6px', marginBottom: '48px',
+            overflowX: isMobile ? 'auto' : 'visible',
+            WebkitOverflowScrolling: 'touch',
+            marginBottom: '48px',
+            paddingBottom: isMobile ? '4px' : '0',
+          }}
+        >
+          <div style={{
+            display: 'flex', justifyContent: isMobile ? 'flex-start' : 'center',
+            gap: '6px',
             background: 'rgba(255,255,255,0.03)',
             border: '1px solid rgba(255,255,255,0.07)',
             borderRadius: '999px', padding: '6px',
-            width: 'fit-content', margin: '0 auto 48px',
-          }}
-        >
-          {categories.map((cat, i) => (
-            <motion.button
-              key={i}
-              onClick={() => setActiveTab(i)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              style={{
-                position: 'relative',
-                padding: '9px 22px',
-                borderRadius: '999px', border: 'none',
-                background: activeTab === i ? 'rgba(52,211,153,0.12)' : 'transparent',
-                color: activeTab === i ? '#34d399' : 'rgba(255,255,255,0.4)',
-                fontFamily: 'Syne, sans-serif', fontWeight: '600',
-                fontSize: '13px', cursor: 'pointer',
-                letterSpacing: '0.03em',
-                transition: 'color 0.2s ease',
-                display: 'flex', alignItems: 'center', gap: '6px',
-              }}
-            >
-              {activeTab === i && (
-                <motion.div
-                  layoutId="tabBg"
-                  style={{
-                    position: 'absolute', inset: 0,
-                    borderRadius: '999px',
-                    background: 'rgba(52,211,153,0.1)',
-                    border: '1px solid rgba(52,211,153,0.25)',
-                  }}
-                  transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
-                />
-              )}
-              <span style={{ position: 'relative', zIndex: 1 }}>{cat.icon}</span>
-              <span style={{ position: 'relative', zIndex: 1 }}>{cat.label}</span>
-            </motion.button>
-          ))}
+            width: 'fit-content',
+            margin: isMobile ? '0 auto' : '0 auto',
+            minWidth: isMobile ? 'max-content' : 'auto',
+          }}>
+            {categories.map((cat, i) => (
+              <motion.button
+                key={i}
+                onClick={() => setActiveTab(i)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                  position: 'relative',
+                  padding: isMobile ? '8px 14px' : '9px 22px',
+                  borderRadius: '999px', border: 'none',
+                  background: activeTab === i ? 'rgba(52,211,153,0.12)' : 'transparent',
+                  color: activeTab === i ? '#34d399' : 'rgba(255,255,255,0.4)',
+                  fontFamily: 'Syne, sans-serif', fontWeight: '600',
+                  fontSize: isMobile ? '12px' : '13px',
+                  cursor: 'pointer',
+                  letterSpacing: '0.03em',
+                  transition: 'color 0.2s ease',
+                  display: 'flex', alignItems: 'center',
+                  gap: isMobile ? '4px' : '6px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {activeTab === i && (
+                  <motion.div
+                    layoutId="tabBg"
+                    style={{
+                      position: 'absolute', inset: 0,
+                      borderRadius: '999px',
+                      background: 'rgba(52,211,153,0.1)',
+                      border: '1px solid rgba(52,211,153,0.25)',
+                    }}
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
+                  />
+                )}
+                <span style={{ position: 'relative', zIndex: 1 }}>{cat.icon}</span>
+                <span style={{ position: 'relative', zIndex: 1 }}>{cat.label}</span>
+              </motion.button>
+            ))}
+          </div>
         </motion.div>
 
         {/* ── Skill Bars Grid ── */}
@@ -423,7 +433,7 @@ export default function SkillsSection() {
             transition={{ duration: 0.35 }}
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
               gap: '12px',
             }}
           >
@@ -444,7 +454,7 @@ export default function SkillsSection() {
           animate={isInView ? { opacity: 1 } : {}}
           transition={{ delay: 1.2, duration: 0.8 }}
           style={{
-            marginTop: '64px',
+            marginTop: isMobile ? '40px' : '64px',
             overflow: 'hidden',
             position: 'relative',
           }}
@@ -495,14 +505,6 @@ export default function SkillsSection() {
         position: 'absolute', bottom: 0, left: 0, right: 0, height: '1px',
         background: 'linear-gradient(90deg, transparent, rgba(52,211,153,0.2), transparent)',
       }} />
-
-      <style>{`
-        @media (max-width: 768px) {
-          #skills > div > div > div:nth-child(4) {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </section>
   )
 }
