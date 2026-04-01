@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import resume from "../assets/Roshan_Resume.pdf";
 
 const links = [
   { label: 'Home',     href: '/' },
@@ -70,7 +69,7 @@ export default function Navbar() {
 
         {/* CTA button */}
         <motion.a
-          href={resume}
+          href="/roshan_resume.pdf"
           target="_blank"
           rel="noopener noreferrer"
           className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium"
