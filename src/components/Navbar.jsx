@@ -69,7 +69,7 @@ export default function Navbar() {
 
         {/* CTA button */}
         <motion.a
-          href="/roshan_resume.pdf"
+          href="https://docs.google.com/viewer?url=https://roshan-singh-portfolio-three.vercel.app/roshan_resume.pdf&embedded=false"
           target="_blank"
           rel="noopener noreferrer"
           className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium"
